@@ -25,6 +25,8 @@ def main():
     g = Graph()
     g.bind("dc", "http://purl.org/dc/elements/1.1/")
     g.bind("bibo", "http://purl.org/ontology/bibo/")
+    g.bind("foaf", "http://xmlns.com/foaf/0.1/")
+    g.bind("owl", "http://www.w3.org/2002/07/owl#")
     
     #OAI2 access initialization
     registry = MetadataRegistry()
@@ -34,12 +36,14 @@ def main():
     creator_dict = {}
     creator_id_count = 1
     
+    #print dir(client.listRecords)
+    
     #Iterate over each record in headatuz database
-    for record, i in zip(client.listRecords(metadataPrefix='oai_dc'), range(0,100)):
+    for record in client.listRecords(metadataPrefix='oai_dc'):
         for item in record:
             if type(item) == Metadata:
                 item_dict = dict(item.getMap())
-                print item_dict
+                ##print item_dict
                 record_creator_list = []
                 creator_list = item_dict['creator']
                 #Get record identifier
@@ -47,14 +51,17 @@ def main():
                 record_id = record_id_url.path.replace('/', '')
                 #Iterate over each creator of the current record
                 for creator in creator_list:
-                    creator_orig = creator
-                    creator = creator.replace(' ', '%20')
-                    creator_params = urllib.urlencode({'query': creator.encode('utf-8')})
-                    req = urllib2.Request('http://viaf.org/viaf/AutoSuggest?' + creator_params)
-                    f = urllib2.urlopen(req)
-                    json_item = simplejson.load(f, strict=False)
-                    
+                    creator_orig = creator                    
                     if creator_orig not in creator_dict.keys():
+                        creator = creator.replace(' ', '%20')
+                        creator_params = urllib.urlencode({'query': creator.encode('utf-8')})
+                        req = urllib2.Request('http://viaf.org/viaf/AutoSuggest?' + creator_params)
+                        f = urllib2.urlopen(req)
+                        try:
+                            json_item = simplejson.load(f, strict=False)
+                        except Exception as e:
+                            print e
+                            break
                         #Generate creator id
                         #id_len = len(str(creator_id_count))
                         #digits = CREATOR_ID_DIGITS - id_len
@@ -81,31 +88,31 @@ def main():
                 if type(item_type_list) == list:
                     for item_type in item_type_list:
                         if item_type.encode('utf-8') == 'Artículo':
-                            print 'Articulo'
+                            #print 'Articulo'
                             g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Article'))
                         elif item_type.encode('utf-8') == 'Sección de Libro':
-                            print 'Seccion'
+                            #print 'Seccion'
                             g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/BookSection'))
                         elif item_type == u'Libro':
-                            print 'Libro'
+                            #print 'Libro'
                             g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Book'))
                         elif item_type == u'PeerReviewed':
-                            print 'Peer'
+                            #print 'Peer'
                             g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/ontology/bibo/DocumentStatus', u'http://purl.org/ontology/bibo/status/peerReviewed'))
 
                 else:
                     item_type = item_dict['type']
                     if item_type.encode('utf-8') == 'Artículo':
-                        print 'Articulo'
+                        #print 'Articulo'
                         g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Article'))
                     elif item_type.encode('utf-8') == 'Sección de Libro':
-                        print 'Seccion'
+                        #print 'Seccion'
                         g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/BookSection'))
                     elif item_type == u'Libro':
-                        print 'Libro'
+                        #print 'Libro'
                         g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Book'))
                     elif item_type == u'PeerReviewed':
-                        print 'Peer'
+                        #print 'Peer'
                         g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/ontology/bibo/DocumentStatus', u'http://purl.org/ontology/bibo/status/peerReviewed'))
                 
                 for key in item_dict:
@@ -113,20 +120,21 @@ def main():
                     if type(obj) == list:
                         for creator_item in obj:
                             if key == 'creator':
-                                g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/dc/elements/1.1/creator', RDF_DOMAIN + u'resource/author/' + creator_item.id))
+                                g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/dc/elements/1.1/creator', RDF_DOMAIN + u'resource/author/' + str(creator_item.id)))
                             else:
                                 g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/dc/elements/1.1/' + key, Literal(creator_item)))
                                 
     for key in creator_dict.keys():
         creator = creator_dict[key]
-        g.add((RDF_DOMAIN + u'resource/author/' + creator.id, u'http://xmlns.com/foaf/0.1/name', Literal(creator.name)))
+        g.add((RDF_DOMAIN + u'resource/author/' + str(creator.id), u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://xmlns.com/foaf/0.1/Person'))
+        g.add((RDF_DOMAIN + u'resource/author/' + str(creator.id), u'http://xmlns.com/foaf/0.1/name', Literal(creator.name)))
         if creator.viaf_id != None:
-            g.add((RDF_DOMAIN + u'resource/author/' + creator.id, u'http://www.w3.org/2002/07/owl#sameAs', VIAF_URL + creator.viaf_id))
+            g.add((RDF_DOMAIN + u'resource/author/' + str(creator.id), u'http://www.w3.org/2002/07/owl#sameAs', VIAF_URL + creator.viaf_id))
                                 
     print len(g)
 
-    for s, p, o in g:
-        print s, p, o
+    #for s, p, o in g:
+        ##print s, p, o
 
     f = open('hedatuz.rdf', 'w')
     f.write(g.serialize(format='pretty-xml'))
