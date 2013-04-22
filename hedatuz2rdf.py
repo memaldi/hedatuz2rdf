@@ -99,6 +99,9 @@ def main():
                         elif item_type == u'PeerReviewed':
                             #print 'Peer'
                             g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/ontology/bibo/DocumentStatus', u'http://purl.org/ontology/bibo/status/peerReviewed'))
+                        elif item_type.encode('utf-8') == 'Monografía':
+                            g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Document'))
+                
 
                 else:
                     item_type = item_dict['type']
@@ -114,6 +117,8 @@ def main():
                     elif item_type == u'PeerReviewed':
                         #print 'Peer'
                         g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://purl.org/ontology/bibo/DocumentStatus', u'http://purl.org/ontology/bibo/status/peerReviewed'))
+                    elif item_type.encode('utf-8') == 'Monografía':
+                        g.add((RDF_DOMAIN + u'resource/biblio/' + record_id, u'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', u'http://purl.org/ontology/bibo/Document'))
                 
                 for key in item_dict:
                     obj = item_dict[key]
